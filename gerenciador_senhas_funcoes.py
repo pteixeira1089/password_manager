@@ -2,6 +2,7 @@
 import os
 import csv
 import sys
+from pandas import read_csv
 from gerenciador_senhas_classes import Login
 
 
@@ -19,6 +20,36 @@ def criaArquivoSenhas():
     with open('senhas.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["dono_senha", "dominio", "usuario", "senha"])
+
+
+def verificaRegistroUsuarios():
+    """Função que verifica se já há um arquivo csv salvo para armazenar usuários"""
+    if os.path.isfile('usuarios.csv'):
+        return True
+    else:
+        return False
+
+
+def criaArquivoUsuarios():
+    """Função que inicializa um arquivo de usuários com o nome 'usuarios.csv'"""
+    with open('usuarios.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["usuario", "hash_pwd"])
+
+
+def integridade_usuario(username: str):
+    """Verifica se existe um usuário cadastrado com o username passado
+    Retorna verdadeiro se o usuário não estiver cadastrado
+    Retorna false se o usuário já estiver cadastrado"""
+    users_table = read_csv('usuarios.csv')
+    users = users_table['usuario'].tolist()
+
+    return not(username in users)
+
+
+def novoUsuario(username: str, pwd: str):
+    """Função que cria/registra um novo usuário na tabela de usuários"""
+
 
 
 def criaNovoLogin(dono_senha, dominio, usuario, senha):
@@ -56,7 +87,6 @@ def geraMenu():
             case '0':
                 digito_valido = True
                 return int(digito_inserido)
-                sys.exit('Programa encerrado')
             case '1':
                 digito_valido = True
                 return int(digito_inserido)
@@ -67,20 +97,16 @@ def geraMenu():
 
 def avalia_opcao(opcao: int):
     """Avalia a opção inserida pelo usuário, e executa a ação correspondente
-    Retorna um objeto senha caso a opção escolhida for válida
-    Retorna False se a opção escolhida for inválida"""
+    Retorna um objeto Login caso a opção escolhida seja 1
+    Retorna 0 caso o usuário tenha escolhido sair do programa"""
     match opcao:
+        case 0:
+            print('Programa encerrado! Até breve!')
+            return 0
+
         case 1:
             dominio = input('Informe o site para o qual deseja salvar a senha:\n')
             usuario = input('Informe o login (usuário) da senha:\n')
             senha = input('Informe a senha que deseja salvar:\n')
             
             return Login(dono_senha='usuario_teste', dominio=dominio, usuario=usuario, senha=senha)
-
-
-        
-        case _:
-            print('Opção inválida')
-            
-            return False
-
