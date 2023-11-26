@@ -50,6 +50,14 @@ def integridade_usuario(username: str):
 def novoUsuario(username: str, pwd: str):
     """Função que cria/registra um novo usuário na tabela de usuários"""
 
+    #Testa se o usuário já foi cadastrado
+    if integridade_usuario():
+        #Prepara a lista de dados que será usada para adicionar uma linha ao csv de usuários
+        lst_usuario = [username, hash(pwd)]
+
+        with open('usuarios.csv', 'w', newline='') as file:
+            writer = csv.writer(csvfile=usuarios.csv)
+            writer.writerow(lst_usuario)
 
 
 def criaNovoLogin(dono_senha, dominio, usuario, senha):
@@ -78,21 +86,22 @@ def geraMenu():
         print('\n----------------------------------------------')
         print('Bem vindo ao programa gerenciador de senhas')
         print('Digite 0 para sair do programa')
-        print('Digite 1 para cadastrar uma nova senha')
+        print('Digite 1 para cadastrar um novo usuário')
+        print('Digite 2 para logar caso já tenha uma conta')
         print('------------------------------------------------\n')
     
         digito_inserido = input('Digite a opção desejada: \n')
+        
+        #Testa se o valor inserido pelo usuário é válido
+        if str.isdigit(digito_inserido):
+            #Se o dígito inserido for um número, convrete a variável dígito inserido para o tipo inteiro
+            digito_inserido = int(digito_inserido)
+            if digito_inserido in range(3):
+                digito_valido = True
+                return int(digito_inserido)
 
-        match digito_inserido:
-            case '0':
-                digito_valido = True
-                return int(digito_inserido)
-            case '1':
-                digito_valido = True
-                return int(digito_inserido)
-            case _:
-                digito_valido = False
-                print('\n Dígito inválido. Insira uma opção válida. \n')
+        #O código só chega aqui se o teste acima, para valores inteiros válidos, não for validado
+        print('\n Dígito inválido. Insira uma opção válida. \n')
 
 
 def avalia_opcao(opcao: int):
@@ -103,7 +112,18 @@ def avalia_opcao(opcao: int):
         case 0:
             print('Programa encerrado! Até breve!')
             return 0
+        case 1:
+            print('Vamos te cadastrar')
+        case 2:
+            print('Vamos fazer seu login')
 
+
+def avalia_opcao_menu2(opcao: int):
+    """Avalia a opção inserida por um usuário já cadastrado no segundo menu
+    Executa a ação correspondente à opção escolhida
+    Retorna um objeto Login caso a opção escolhida seja 1"""
+
+    match opcao:
         case 1:
             dominio = input('Informe o site para o qual deseja salvar a senha:\n')
             usuario = input('Informe o login (usuário) da senha:\n')
