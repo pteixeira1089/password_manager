@@ -1,2 +1,3 @@
-# password_manager
-Project of a password manager with symmetric encryption
+# Password Manager
+This is a simple Python project of a password manager with symmetric encryption.
+
