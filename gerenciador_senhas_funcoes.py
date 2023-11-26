@@ -62,7 +62,7 @@ def geraMenu():
                 return int(digito_inserido)
             case _:
                 digito_valido = False
-                print('Dígito inválido. Insira uma opção válida. \n')
+                print('\n Dígito inválido. Insira uma opção válida. \n')
 
 
 def avalia_opcao(opcao: int):
