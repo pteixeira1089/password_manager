@@ -1,3 +1,5 @@
 senhas.csv
 usuarios.csv
 __pycache__/
+models.py
+keys.py

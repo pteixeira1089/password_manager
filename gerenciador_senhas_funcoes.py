@@ -3,6 +3,7 @@ import os
 import csv
 import sys
 from pandas import read_csv
+from getpass import getpass
 from gerenciador_senhas_classes import Login
 
 
@@ -37,6 +38,21 @@ def criaArquivoUsuarios():
         writer.writerow(["usuario", "hash_pwd"])
 
 
+def verificaRegistroRecuperacaoUsuarios():
+    """Função que verifica se já há um arquivo csv salvo para armazenar logs de recuperação de senhas de usuário"""
+    if os.path.isfile('log_recuperacao_senha.csv'):
+        return True
+    else:
+        return False
+
+
+def criaArquivoLogRecuperacaoUsuarios():
+    """Função que inicializa um arquivo de log de recuperação de senhas de usuário com o nome 'log_recuperacao_senha.csv'"""
+    with open('log_recuperacao_senha.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["usuario", "time_stamp_solicitacao", "time_stamp_limite"])
+
+
 def integridade_usuario(username: str):
     """Verifica se existe um usuário cadastrado com o username passado
     Retorna verdadeiro se o usuário não estiver cadastrado
@@ -58,6 +74,8 @@ def novoUsuario(username: str, pwd: str):
         with open('usuarios.csv', 'w', newline='') as file:
             writer = csv.writer(csvfile=usuarios.csv)
             writer.writerow(lst_usuario)
+
+def 
 
 
 def criaNovoLogin(dono_senha, dominio, usuario, senha):
@@ -114,6 +132,9 @@ def avalia_opcao(opcao: int):
             return 0
         case 1:
             print('Vamos te cadastrar')
+            nome_usuario = input('Digite um nome de usuário: \n')
+            senha = hash(getpass('Digite uma senha: \n'))
+
         case 2:
             print('Vamos fazer seu login')
 

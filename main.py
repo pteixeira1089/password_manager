@@ -11,6 +11,10 @@ if not(functions.verificaRegistroSenhas()):
 if not(functions.verificaRegistroUsuarios()):
     functions.criaArquivoUsuarios()
 
+#Testa se já há um arquivo csv criado para armazenar tentativas de recuperação de senha
+if not(functions.verificaRegistroRecuperacaoUsuarios()):
+    functions.criaArquivoLogRecuperacaoUsuarios()
+
 #Chama o menu de interação
 opcao = functions.geraMenu()
 
