@@ -3,7 +3,11 @@ import os
 import csv
 import sys
 import requests
+import ssl #Pacote que adiciona camada de segurança para comunicações em rede
+import smtplib #Pacote para envio de e-mails
+from keys import conta_email, gmail_app_pwd
 from models import random_api_url, random_api_request_body
+from email.message import EmailMessage
 from pandas import read_csv
 from getpass import getpass
 from gerenciador_senhas_classes import Login
@@ -77,12 +81,45 @@ def novoUsuario(username: str, pwd: str):
             writer = csv.writer(csvfile=usuarios.csv)
             writer.writerow(lst_usuario)
 
-def recuperaSenhaUsuario(username: str):
+def recuperaSenhaUsuario(email: str):
     """Gera um código de recuperação de senha e envia para o e-mail do usuário cadastrado"""
     response = requests.post(url=random_api_url, json=random_api_request_body).json()
     
     #Lista de 6 dígitos
     random_list = response['result']['random']['data']
+
+    #Envia um e-mail para o usuário com o código de recuperação
+
+    #Configura variáveis de e-mail
+    email_sender = conta_email
+    email_password = gmail_app_pwd
+    email_receiver = email
+    subject = 'Recuperação de senha de acesso - Jopy Senhas'
+    body = f"""
+    Olá!
+
+    Use o código abaixo para recuperar sua senha no Jopy Senhas:
+
+
+    """
+
+    for number in random_list:
+        body = body + str(number)
+
+    
+
+    em = EmailMessage()
+    em['From'] = email_sender
+    em['To'] = email_receiver
+    em['Subject'] = subject
+
+    em.set_content(body)
+    context = ssl.create_default_context()
+
+    #Envia o e-mail
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+        smtp.login(email_sender, email_password)
+        smtp.sendmail(email_sender, email_receiver, em.as_string())
 
 
 def criaNovoLogin(dono_senha, dominio, usuario, senha):
@@ -158,3 +195,8 @@ def avalia_opcao_menu2(opcao: int):
             senha = input('Informe a senha que deseja salvar:\n')
             
             return Login(dono_senha='usuario_teste', dominio=dominio, usuario=usuario, senha=senha)
+        
+
+#Ambiente de testes
+if __name__ == '__main__':
+    recuperaSenhaUsuario(email='pteixeira1089@hotmail.com')
