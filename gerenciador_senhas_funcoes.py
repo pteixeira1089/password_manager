@@ -2,6 +2,8 @@
 import os
 import csv
 import sys
+import requests
+from models import random_api_url, random_api_request_body
 from pandas import read_csv
 from getpass import getpass
 from gerenciador_senhas_classes import Login
@@ -50,7 +52,7 @@ def criaArquivoLogRecuperacaoUsuarios():
     """Função que inicializa um arquivo de log de recuperação de senhas de usuário com o nome 'log_recuperacao_senha.csv'"""
     with open('log_recuperacao_senha.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["usuario", "time_stamp_solicitacao", "time_stamp_limite"])
+        writer.writerow(["usuario", "time_stamp_solicitacao", "time_stamp_limite", "codigo"])
 
 
 def integridade_usuario(username: str):
@@ -75,7 +77,12 @@ def novoUsuario(username: str, pwd: str):
             writer = csv.writer(csvfile=usuarios.csv)
             writer.writerow(lst_usuario)
 
-def 
+def recuperaSenhaUsuario(username: str):
+    """Gera um código de recuperação de senha e envia para o e-mail do usuário cadastrado"""
+    response = requests.post(url=random_api_url, json=random_api_request_body).json()
+    
+    #Lista de 6 dígitos
+    random_list = response['result']['random']['data']
 
 
 def criaNovoLogin(dono_senha, dominio, usuario, senha):
