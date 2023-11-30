@@ -1,5 +1,4 @@
 """Arquivo que executa a lógica do gerenciador de senhas"""
-import os
 import gerenciador_senhas_funcoes as functions
 
 
@@ -23,7 +22,4 @@ resultado = functions.avalia_opcao(opcao=opcao)
 
 #Se o resultado for 1, mostra dados da senha cadastrada
 if resultado == 1:
-    print(f'O dono da senha é: {resultado.dono_senha}')
-    print(f'O site para o qual a senha funciona é: {resultado.dominio}')
-    print(f'O usuário (login) é: {resultado.usuario}')
-    print(f'A senha registrada é: {resultado.senha}')
+    print('Usuário cadastrado com sucesso!')

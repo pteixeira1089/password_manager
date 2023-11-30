@@ -175,9 +175,20 @@ def avalia_opcao(opcao: int):
             print('Programa encerrado! Até breve!')
             return 0
         case 1:
-            print('Vamos te cadastrar')
+            print('\nVamos te cadastrar!')
             nome_usuario = input('Digite um nome de usuário: \n')
-            senha = hash(getpass('Digite uma senha: \n'))
+            
+            #I tried using getpass, but it's not popping up in the top of my screen
+            #senha = getpass('Digite uma senha:') #Will analyze it later
+            senha = hash(input('Digite uma senha: \n'))
+
+            #Cadastra o usuário no csv de usuários
+            with open('usuarios.csv', 'a') as file:
+                writer = csv.writer(file)
+                writer.writerow([nome_usuario, senha])
+
+            return 1
+
 
         case 2:
             print('Vamos fazer seu login')

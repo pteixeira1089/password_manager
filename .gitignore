@@ -3,3 +3,4 @@ usuarios.csv
 __pycache__/
 models.py
 keys.py
+log_recuperacao_senha.csv
