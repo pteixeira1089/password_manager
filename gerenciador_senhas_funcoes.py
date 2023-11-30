@@ -1,15 +1,15 @@
 """Arquivo de funções que são utilizadas no programa principal"""
 import os
 import csv
-import sys
-import requests
+import bcrypt #Pacote que faz o hash das senhas de usuário salvas
 import ssl #Pacote que adiciona camada de segurança para comunicações em rede
 import smtplib #Pacote para envio de e-mails
+from email.message import EmailMessage
+#from getpass import getpass #I tried using getpass, but it didn't work - the popup didn't show in the top of the screen
+import requests
+from pandas import read_csv
 from keys import conta_email, gmail_app_pwd
 from models import random_api_url, random_api_request_body
-from email.message import EmailMessage
-from pandas import read_csv
-from getpass import getpass
 from gerenciador_senhas_classes import Login
 
 
@@ -71,15 +71,18 @@ def integridade_usuario(username: str):
 
 def novoUsuario(username: str, pwd: str):
     """Função que cria/registra um novo usuário na tabela de usuários"""
+    lst_usuario = [username, pwd]
 
-    #Testa se o usuário já foi cadastrado
-    if integridade_usuario():
-        #Prepara a lista de dados que será usada para adicionar uma linha ao csv de usuários
-        lst_usuario = [username, hash(pwd)]
+    with open('usuarios.csv', 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(lst_usuario)
 
-        with open('usuarios.csv', 'w', newline='') as file:
-            writer = csv.writer(csvfile=usuarios.csv)
-            writer.writerow(lst_usuario)
+def obtem_senha_usuario(username: str):
+    """Função que recebe um username e retorna a senha correspondente"""
+    users_table = read_csv('usuarios.csv')
+
+    return users_table.loc[users_table['usuario'] == username, 'hash_pwd'].values[0]
+
 
 def recuperaSenhaUsuario(email: str):
     """Gera um código de recuperação de senha e envia para o e-mail do usuário cadastrado"""
@@ -177,21 +180,44 @@ def avalia_opcao(opcao: int):
         case 1:
             print('\nVamos te cadastrar!')
             nome_usuario = input('Digite um nome de usuário: \n')
-            
-            #I tried using getpass, but it's not popping up in the top of my screen
-            #senha = getpass('Digite uma senha:') #Will analyze it later
-            senha = hash(input('Digite uma senha: \n'))
 
-            #Cadastra o usuário no csv de usuários
-            with open('usuarios.csv', 'a') as file:
-                writer = csv.writer(file)
-                writer.writerow([nome_usuario, senha])
+            #Verifica se o usuário já foi cadastrado:
+            if integridade_usuario(username=nome_usuario):
+                #I tried using getpass, but it's not popping up in the top of my screen
+                #senha = getpass('Digite uma senha:') #Will analyze it later
+                
+                #Fazendo o hash da senha com o bcrypt
+                senha = input('Digite uma senha: \n')
+                salt = bcrypt.gensalt()
+                senha = bcrypt.hashpw(senha.encode('utf-8'), salt)
+                
+                #Convert the byte type to string, in order to save the file in the csv
+                senha = str(senha)[2:-1]
 
+                #Cadastra o usuário no csv de usuários
+                novoUsuario(username=nome_usuario, pwd=senha)
+                
+            else: #Caso o usuário já esteja cadastrado
+                print('\nUsuário já cadastrado!')
+
+            #O valor de retorno 1 redireciona o usuário para a tela de menu
             return 1
 
 
         case 2:
-            print('Vamos fazer seu login')
+            print('Vamos fazer seu login\n')
+            nome_usuario = input('Digite seu nome de usuário: \n')
+
+            #Verifica se o usuário já está cadastrado
+            if integridade_usuario(username=nome_usuario):
+                print('Usuário não cadastrado \n')
+            else:
+                senha = hash(input(f'Olá, {nome_usuario}! \n Digite sua senha para logar no Jopy Senhas: \n'))
+
+            
+
+            
+            return 2
 
 
 def avalia_opcao_menu2(opcao: int):
@@ -210,4 +236,11 @@ def avalia_opcao_menu2(opcao: int):
 
 #Ambiente de testes
 if __name__ == '__main__':
-    recuperaSenhaUsuario(email='pteixeira1089@hotmail.com')
+    senha_resultado = obtem_senha_usuario(username='pteixeira').encode('utf-8')
+    senha_teste1 = 'Senha123'
+    
+    if bcrypt.checkpw(senha_teste1.encode('utf-8'), senha_resultado):
+          print('Senhas iguais!\nProcesso de hashing bem sucedido')
+    else:
+          print('hash não funcionou. Senhas não bateram.')
+    

@@ -14,12 +14,16 @@ if not(functions.verificaRegistroUsuarios()):
 if not(functions.verificaRegistroRecuperacaoUsuarios()):
     functions.criaArquivoLogRecuperacaoUsuarios()
 
-#Chama o menu de interação
-opcao = functions.geraMenu()
+#Inicia a variável de controle do menu de interação
+resultado = None
 
-#Avalia a opção inserida
-resultado = functions.avalia_opcao(opcao=opcao)
+while resultado != 0:
+    #Chama o menu de interação
+    opcao = functions.geraMenu()
 
-#Se o resultado for 1, mostra dados da senha cadastrada
-if resultado == 1:
-    print('Usuário cadastrado com sucesso!')
+    #Avalia a opção inserida
+    resultado = functions.avalia_opcao(opcao=opcao)
+
+    #Se o resultado for 1, mostra dados da senha cadastrada
+    if resultado == 1:
+        print('Usuário cadastrado com sucesso!')
