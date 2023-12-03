@@ -1,17 +1,17 @@
 """Arquivo de funções que são utilizadas no programa principal"""
 import os
 import csv
-import bcrypt #Pacote que faz o hash das senhas de usuário salvas
-import ssl #Pacote que adiciona camada de segurança para comunicações em rede
-import smtplib #Pacote para envio de e-mails
+import datetime
+import bcrypt  # Pacote que faz o hash das senhas de usuário salvas
+import ssl  # Pacote que adiciona camada de segurança para comunicações em rede
+import smtplib  # Pacote para envio de e-mails
 from email.message import EmailMessage
-#from getpass import getpass #I tried using getpass, but it didn't work - the popup didn't show in the top of the screen
+# from getpass import getpass #I tried using getpass, but it didn't work - the popup didn't show in the top of the screen
 import requests
 from pandas import read_csv
 from keys import conta_email, gmail_app_pwd
 from models import random_api_url, random_api_request_body
-from gerenciador_senhas_classes import Login
-
+from gerenciador_senhas_classes import Login, User
 
 
 def verificaRegistroSenhas():
@@ -20,7 +20,7 @@ def verificaRegistroSenhas():
         return True
     else:
         return False
-    
+
 
 def criaArquivoSenhas():
     """Função que inicializa um arquivo de senhas com o nome 'senhas.csv'"""
@@ -41,7 +41,7 @@ def criaArquivoUsuarios():
     """Função que inicializa um arquivo de usuários com o nome 'usuarios.csv'"""
     with open('usuarios.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["usuario", "hash_pwd"])
+        writer.writerow(["usuario", "email", "hash_pwd", "cpf"])
 
 
 def verificaRegistroRecuperacaoUsuarios():
@@ -56,7 +56,19 @@ def criaArquivoLogRecuperacaoUsuarios():
     """Função que inicializa um arquivo de log de recuperação de senhas de usuário com o nome 'log_recuperacao_senha.csv'"""
     with open('log_recuperacao_senha.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["usuario", "time_stamp_solicitacao", "time_stamp_limite", "codigo"])
+        writer.writerow(["usuario", "time_stamp_solicitacao",
+                        "time_stamp_limite", "codigo"])
+
+
+def get_usr(usr_name: str):
+    """Get a User object from the csv file that corresponds to the given user_name given"""
+    users_table = read_csv('usuarios.csv')
+
+    user_pwd = users_table.loc[users_table['usuario'] == usr_name, 'hash_pwd'].values[0]
+    user_email = users_table.loc[users_table['usuario'] == usr_name, 'email'].values[0]
+    user_cpf = users_table.loc[users_table['usuario'] == usr_name, 'cpf'].values[0]
+
+    return User(nome_usuario=usr_name, email_usuario=user_email, pwd_hash_usuario=user_pwd, cpf_usuario=user_cpf)
 
 
 def integridade_usuario(username: str):
@@ -66,7 +78,7 @@ def integridade_usuario(username: str):
     users_table = read_csv('usuarios.csv')
     users = users_table['usuario'].tolist()
 
-    return not(username in users)
+    return not (username in users)
 
 
 def novoUsuario(username: str, pwd: str):
@@ -77,23 +89,21 @@ def novoUsuario(username: str, pwd: str):
         writer = csv.writer(file)
         writer.writerow(lst_usuario)
 
-def obtem_senha_usuario(username: str):
-    """Função que recebe um username e retorna a senha correspondente"""
-    users_table = read_csv('usuarios.csv')
 
-    return users_table.loc[users_table['usuario'] == username, 'hash_pwd'].values[0]
-
-
-def recuperaSenhaUsuario(email: str):
+def recupera_senha_usuario(email: str):
     """Gera um código de recuperação de senha e envia para o e-mail do usuário cadastrado"""
-    response = requests.post(url=random_api_url, json=random_api_request_body).json()
-    
-    #Lista de 6 dígitos
+    response = requests.post(
+        url=random_api_url, json=random_api_request_body).json()
+
+    # Lista de 6 dígitos
     random_list = response['result']['random']['data']
+    
+    #Initiates a variable that will store the generated code
+    code = ''
 
-    #Envia um e-mail para o usuário com o código de recuperação
+    # Envia um e-mail para o usuário com o código de recuperação
 
-    #Configura variáveis de e-mail
+    # Configura variáveis de e-mail
     email_sender = conta_email
     email_password = gmail_app_pwd
     email_receiver = email
@@ -108,8 +118,7 @@ def recuperaSenhaUsuario(email: str):
 
     for number in random_list:
         body = body + str(number)
-
-    
+        code = code + str(number)
 
     em = EmailMessage()
     em['From'] = email_sender
@@ -119,10 +128,13 @@ def recuperaSenhaUsuario(email: str):
     em.set_content(body)
     context = ssl.create_default_context()
 
-    #Envia o e-mail
+    # Envia o e-mail
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
         smtp.login(email_sender, email_password)
         smtp.sendmail(email_sender, email_receiver, em.as_string())
+
+    #Returns the random code generated
+    return code
 
 
 def criaNovoLogin(dono_senha, dominio, usuario, senha):
@@ -132,10 +144,10 @@ def criaNovoLogin(dono_senha, dominio, usuario, senha):
 
 def salvaLogin(Login: Login):
     """Função que salva um objeto do tipo login no arquivo csv"""
-    
-    #Cria uma lista de valores a partir dos atributos do objeto login
+
+    # Cria uma lista de valores a partir dos atributos do objeto login
     atributos = [value for value in vars(Login).values()]
-    
+
     with open('senhas.csv', 'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(atributos)
@@ -154,22 +166,139 @@ def geraMenu():
         print('Digite 1 para cadastrar um novo usuário')
         print('Digite 2 para logar caso já tenha uma conta')
         print('------------------------------------------------\n')
-    
+
         digito_inserido = input('Digite a opção desejada: \n')
-        
-        #Testa se o valor inserido pelo usuário é válido
+
+        # Testa se o valor inserido pelo usuário é válido
         if str.isdigit(digito_inserido):
-            #Se o dígito inserido for um número, convrete a variável dígito inserido para o tipo inteiro
+            # Se o dígito inserido for um número, convrete a variável dígito inserido para o tipo inteiro
             digito_inserido = int(digito_inserido)
             if digito_inserido in range(3):
                 digito_valido = True
                 return int(digito_inserido)
 
-        #O código só chega aqui se o teste acima, para valores inteiros válidos, não for validado
+        # O código só chega aqui se o teste acima, para valores inteiros válidos, não for validado
         print('\n Dígito inválido. Insira uma opção válida. \n')
 
 
-def avalia_opcao(opcao: int):
+def wrong_pwd_menu(usr_name: str):
+    """Gera um menu para interação com o usuário que etá tentando logar
+    Caso o usuário escolha uma opção válida, retorna o valor inteiro da opção escolhida
+    Caso contrário, repete as mensagens de menu"""
+    digito_valido = False
+
+    while digito_valido == False:
+        print('\n----------------------------------------------')
+        print(f'Olá {usr_name}! Você digitou a senha errada para seu usuário. Escolha uma das opções abaixo para continuar:')
+        print('Digite 0 para sair do programa')
+        print('Digite 1 para tentar digitar a senha novamente')
+        print('Digite 2 caso tenha esquecido sua senha e queira recuperá-la')
+        print('------------------------------------------------\n')
+
+        digito_inserido = input('Digite a opção desejada: \n')
+
+        # Testa se o valor inserido pelo usuário é válido
+        if str.isdigit(digito_inserido):
+            # Se o dígito inserido for um número, converte a variável dígito inserido para o tipo inteiro
+            digito_inserido = int(digito_inserido)
+            if digito_inserido in range(3):
+                digito_valido = True
+                return int(digito_inserido)
+
+        # O código só chega aqui se o teste acima, para valores inteiros válidos, não for validado
+        print('\n Dígito inválido. Insira uma opção válida. \n')
+
+
+def recover_pwd_menu():
+    """Gera um menu para interação com o usuário que está tentando recuperar sua senha
+    Caso o usuário escolha uma opção válida, retorna o valor inteiro da opção escolhida
+    Caso contrário, repete as mensagens de menu"""
+    digito_valido = False
+    qtd_opcoes = 3
+
+    while digito_valido == False:
+        print('\n----------------------------------------------')
+        print('Menu de recuperação de senha:')
+        print('Digite 0 para sair do programa')
+        print('Digite 1 para digitar o código de recuperação recebido')
+        print('Digite 2 para receber um novo código de recuperação')
+        print('------------------------------------------------\n')
+
+        digito_inserido = input('Digite a opção desejada: \n')
+
+        # Testa se o valor inserido pelo usuário é válido
+        if str.isdigit(digito_inserido):
+            # Se o dígito inserido for um número, converte a variável dígito inserido para o tipo inteiro
+            digito_inserido = int(digito_inserido)
+            if digito_inserido in range(qtd_opcoes):
+                digito_valido = True
+                return int(digito_inserido)
+
+        # O código só chega aqui se o teste acima, para valores inteiros válidos, não for validado
+        print('\n Dígito inválido. Insira uma opção válida. \n')
+
+
+def evaluates_option_wrong_password_menu(option: int, usr_name: str):
+    """Evaluates the option chosen by the user in 'wrong pwd menu'
+    and executes the corresponding action"""
+    match option:
+        case 0:
+            print('Programa encerrado! Até breve!')
+            return 0
+        case 1:
+            if evaluates_user_typed_pwd(usr_name=usr_name):
+                #3 returned code stands for passing for logged-in user menu
+                return 3
+            else:
+                #1 Stands for wrong typed password
+                return 1
+        case 2:
+            print('Um código de recuperação foi enviado para seu e-mail')
+            user = get_usr(usr_name)
+
+            #Envia um e-mail com código de recuperação de senha ao usuário cadastrado
+            #E armazena o código gerado no processo de recuperação na variável code
+            code = recupera_senha_usuario(user.email_usuario)
+            
+            #Generates current time, time limit and limit time to complete the recovery process
+            current_time = datetime.datetime.now()
+            time_limit = datetime.timedelta(minutes=5)
+            limit_time = current_time + time_limit
+
+            recover_entry = [usr_name, current_time, limit_time, code]
+
+            #Creates an entry on log_recuperacao_senha.csv
+            with open('log_recuperacao_senha.csv', 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(recover_entry)
+            
+            #Generates a password recovery menu
+            option_recover_pwd = recover_pwd_menu()
+
+            #Write a procedure to deal with the possible answers to the recover password menu
+
+
+def evaluates_user_typed_pwd(usr_name: str):
+    """Provided a user name, this function gets it's stored password
+    Asks for the user to type a password
+    Compares both values
+    Returns true if typed password equals stored password
+    Returns false otherwise"""
+    
+    #Gets an user object from the given usr_name
+    user = get_usr(usr_name=usr_name)
+
+    #Gets the user's stored password
+    stored_pwd = user.pwd_hash_usuario
+    
+    #Asks the user to type his password
+    senha = input(
+        f'Olá, {nome_usuario}! \n Digite sua senha para logar no Jopy Senhas: \n').encode('utf-8')
+
+    # Tests if the typed pwd equals the registered pwd
+    return bcrypt.checkpw(senha, stored_pwd)
+
+def avalia_opcao_menu_principal(opcao: int):
     """Avalia a opção inserida pelo usuário, e executa a ação correspondente
     Retorna um objeto Login caso a opção escolhida seja 1
     Retorna 0 caso o usuário tenha escolhido sair do programa"""
@@ -181,42 +310,44 @@ def avalia_opcao(opcao: int):
             print('\nVamos te cadastrar!')
             nome_usuario = input('Digite um nome de usuário: \n')
 
-            #Verifica se o usuário já foi cadastrado:
+            # Verifica se o usuário já foi cadastrado:
             if integridade_usuario(username=nome_usuario):
-                #I tried using getpass, but it's not popping up in the top of my screen
-                #senha = getpass('Digite uma senha:') #Will analyze it later
-                
-                #Fazendo o hash da senha com o bcrypt
+                # I tried using getpass, but it's not popping up in the top of my screen
+                # senha = getpass('Digite uma senha:') #Will analyze it later
+
+                # Fazendo o hash da senha com o bcrypt
                 senha = input('Digite uma senha: \n')
                 salt = bcrypt.gensalt()
                 senha = bcrypt.hashpw(senha.encode('utf-8'), salt)
-                
-                #Convert the byte type to string, in order to save the file in the csv
+
+                # Convert the byte type to string, in order to save the file in the csv
                 senha = str(senha)[2:-1]
 
-                #Cadastra o usuário no csv de usuários
+                # Cadastra o usuário no csv de usuários
                 novoUsuario(username=nome_usuario, pwd=senha)
-                
-            else: #Caso o usuário já esteja cadastrado
+
+            else:  # Caso o usuário já esteja cadastrado
                 print('\nUsuário já cadastrado!')
 
-            #O valor de retorno 1 redireciona o usuário para a tela de menu
+            # O valor de retorno 1 redireciona o usuário para a tela de menu
             return 1
-
 
         case 2:
             print('Vamos fazer seu login\n')
             nome_usuario = input('Digite seu nome de usuário: \n')
 
-            #Verifica se o usuário já está cadastrado
+            # Verifica se o usuário já está cadastrado
             if integridade_usuario(username=nome_usuario):
                 print('Usuário não cadastrado \n')
+                print('Você será redirecionado para o menu principal\n')
             else:
-                senha = hash(input(f'Olá, {nome_usuario}! \n Digite sua senha para logar no Jopy Senhas: \n'))
+                if evaluates_user_typed_pwd(usr_name=nome_usuario):
+                    # Code 3 stands for passing to the loogged-in user menu
+                    return 3
+                else:
+                    # Calls wrong password menu
+                    wrong_pwd_menu(nome_usuario)
 
-            
-
-            
             return 2
 
 
@@ -227,20 +358,9 @@ def avalia_opcao_menu2(opcao: int):
 
     match opcao:
         case 1:
-            dominio = input('Informe o site para o qual deseja salvar a senha:\n')
+            dominio = input(
+                'Informe o site para o qual deseja salvar a senha:\n')
             usuario = input('Informe o login (usuário) da senha:\n')
             senha = input('Informe a senha que deseja salvar:\n')
-            
-            return Login(dono_senha='usuario_teste', dominio=dominio, usuario=usuario, senha=senha)
-        
 
-#Ambiente de testes
-if __name__ == '__main__':
-    senha_resultado = obtem_senha_usuario(username='pteixeira').encode('utf-8')
-    senha_teste1 = 'Senha123'
-    
-    if bcrypt.checkpw(senha_teste1.encode('utf-8'), senha_resultado):
-          print('Senhas iguais!\nProcesso de hashing bem sucedido')
-    else:
-          print('hash não funcionou. Senhas não bateram.')
-    
+            return Login(dono_senha='usuario_teste', dominio=dominio, usuario=usuario, senha=senha)

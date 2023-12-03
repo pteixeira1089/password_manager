@@ -7,10 +7,11 @@ class Login:
         self.usuario = usuario
         self.senha = senha
 
-class Usuario:
+class User:
     """Representa um usuário do sistema"""
 
-    def __init(self, nome_usuario, email_usuario, pwd_hash_usuario):
+    def __init__(self, nome_usuario, email_usuario, pwd_hash_usuario, cpf_usuario):
         self.nome_usuario = nome_usuario
         self.email_usuario = email_usuario
         self.pwd_hash_usuario = pwd_hash_usuario
+        self.cpf_usuario = cpf_usuario

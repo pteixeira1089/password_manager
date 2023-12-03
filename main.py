@@ -2,28 +2,28 @@
 import gerenciador_senhas_funcoes as functions
 
 
-#Testa se já há um arquivo csv criado para armazenar senhas
-if not(functions.verificaRegistroSenhas()):
+# Testa se já há um arquivo csv criado para armazenar senhas
+if not (functions.verificaRegistroSenhas()):
     functions.criaArquivoSenhas()
 
-#Testa se já há um arquivo csv criado para armazenar usuários
-if not(functions.verificaRegistroUsuarios()):
+# Testa se já há um arquivo csv criado para armazenar usuários
+if not (functions.verificaRegistroUsuarios()):
     functions.criaArquivoUsuarios()
 
-#Testa se já há um arquivo csv criado para armazenar tentativas de recuperação de senha
-if not(functions.verificaRegistroRecuperacaoUsuarios()):
+# Testa se já há um arquivo csv criado para armazenar tentativas de recuperação de senha
+if not (functions.verificaRegistroRecuperacaoUsuarios()):
     functions.criaArquivoLogRecuperacaoUsuarios()
 
-#Inicia a variável de controle do menu de interação
+# Inicia a variável de controle do menu de interação
 resultado = None
 
 while resultado != 0:
-    #Chama o menu de interação
+    # Chama o menu de interação
     opcao = functions.geraMenu()
 
-    #Avalia a opção inserida
-    resultado = functions.avalia_opcao(opcao=opcao)
+    # Avalia a opção inserida
+    resultado = functions.avalia_opcao_menu_principal(opcao=opcao)
 
-    #Se o resultado for 1, mostra dados da senha cadastrada
+    # Se o resultado for 1, mostra dados da senha cadastrada
     if resultado == 1:
         print('Usuário cadastrado com sucesso!')
