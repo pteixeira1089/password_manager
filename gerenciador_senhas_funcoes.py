@@ -70,6 +70,20 @@ def get_usr(usr_name: str):
 
     return User(nome_usuario=usr_name, email_usuario=user_email, pwd_hash_usuario=user_pwd, cpf_usuario=user_cpf)
 
+def hash_password(password: str):
+    """Hashes a given password using bcrypt
+    Returns a string value ready to be written to a csv file
+    """
+    
+    #Generates a salt
+    salt = bcrypt.gensalt()
+
+    #Hash the password
+    hashed_password = bcrypt.hashpw(password=password.encode('utf-8'), salt=salt)
+
+    # Convert the byte type to string, in order to save the file in the csv
+    return str(senha)[2:-1]
+
 
 def integridade_usuario(username: str):
     """Verifica se existe um usuário cadastrado com o username passado
@@ -238,6 +252,78 @@ def recover_pwd_menu():
         print('\n Dígito inválido. Insira uma opção válida. \n')
 
 
+def evaluates_option_recover_pwd_menu(option: int, usr_name: str):
+    """Receives the user name and the code chosen by him/her in the recover_pwd_menu function
+    Returns 0 for exiting system
+    Returns 1 for expired recovering code
+    Returns 2 for successfuly changed password
+    Returns 3 for wrong recovery code
+    """
+    match option:
+        case 0:
+            print('Programa encerrado! Até breve!')
+            return 0
+        case 1:
+            typed_code = input('\nDigite o código de recuperação recebido em seu e-mail:\n')
+
+            #Reads the recovery password log
+            recovery_log = read_csv('log_recuperacao_senha.csv')
+            
+            #Find the user corresponding data in recovery pwd register
+            user_time_stamp_limit = recovery_log.loc[recovery_log['usuario'] == usr_name, 'time_stamp_limite'].values[0]
+            user_time_stamp_limit = datetime.datetime.strptime(user_time_stamp_limit, '%Y-%m-%d %H:%M:%S.%f')
+            user_recovery_code = recovery_log.loc[recovery_log['usuario'] == usr_name, 'code'].values[0]
+
+            #Compares the present time to the time_stamp_limite value
+            if datetime.datetime.now() > user_time_stamp_limit:
+                print('Código de recuperação expirado. Solicite um novo código de recuperação.\n')
+                
+                return 1 # Code 1 stands for expired recovery code
+                        
+            else: #In case the time to type recover code isn't expired
+                
+                #Tests if the recovery code is valid
+                if typed_code == user_recovery_code:
+                    new_password = input('Digite uma nova senha: \n')
+
+                    #Hashes the typed password
+                    new_password = hash_password(password=new_password)
+
+                    #Reads users csv file
+                    csv_file = 'usuarios.csv'
+
+                    #Read the csv file into a list of dictionaries
+                    rows = []
+                    with open(csv_file, 'r') as file:
+                        reader = csv.DictReader(file)
+                        for row in reader:
+                            rows.append(row)
+                    
+                    #Find the line of the corresponding user and edit it
+                    for row in rows:
+                        if row['usuario'] == usr_name:
+                            row['hash_pwd'] = new_password
+
+                    #Write the updated data back to the csv file
+                    with open(csv_file, 'w', newline='') as file:
+                        fieldnames = rows[0].keys()
+                        writer = csv.DictWriter(file, fieldnames=fieldnames)
+                        writer.writheader()
+                        writer.writerows(rows)
+                    
+                    #Return success message and reset program
+                    print('\nSenha alterada com sucesso!')
+                    print('Faça seu login com a nova senha para continuar:\n')
+
+                    return 2 #Code 2 stands for password successfuly changed
+
+                else: #In case the typed recovery code doesn't match the registered recovery code
+                    print('Código de recuperação inválido.\n')
+                
+                    return 3 #Code 3 stands for wrong recovery code
+                    
+
+
 def evaluates_option_wrong_password_menu(option: int, usr_name: str):
     """Evaluates the option chosen by the user in 'wrong pwd menu'
     and executes the corresponding action"""
@@ -298,6 +384,7 @@ def evaluates_user_typed_pwd(usr_name: str):
     # Tests if the typed pwd equals the registered pwd
     return bcrypt.checkpw(senha, stored_pwd)
 
+
 def avalia_opcao_menu_principal(opcao: int):
     """Avalia a opção inserida pelo usuário, e executa a ação correspondente
     Retorna um objeto Login caso a opção escolhida seja 1
@@ -315,13 +402,9 @@ def avalia_opcao_menu_principal(opcao: int):
                 # I tried using getpass, but it's not popping up in the top of my screen
                 # senha = getpass('Digite uma senha:') #Will analyze it later
 
-                # Fazendo o hash da senha com o bcrypt
+                # Fazendo o hash da senhat
                 senha = input('Digite uma senha: \n')
-                salt = bcrypt.gensalt()
-                senha = bcrypt.hashpw(senha.encode('utf-8'), salt)
-
-                # Convert the byte type to string, in order to save the file in the csv
-                senha = str(senha)[2:-1]
+                senha = hash_password(password=senha)
 
                 # Cadastra o usuário no csv de usuários
                 novoUsuario(username=nome_usuario, pwd=senha)
