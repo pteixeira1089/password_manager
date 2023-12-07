@@ -37,13 +37,6 @@ def verificaRegistroUsuarios():
         return False
 
 
-def criaArquivoUsuarios():
-    """Função que inicializa um arquivo de usuários com o nome 'usuarios.csv'"""
-    with open('usuarios.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["usuario", "email", "hash_pwd", "cpf"])
-
-
 def verificaRegistroRecuperacaoUsuarios():
     """Função que verifica se já há um arquivo csv salvo para armazenar logs de recuperação de senhas de usuário"""
     if os.path.isfile('log_recuperacao_senha.csv'):
@@ -87,7 +80,7 @@ def hash_password(password: str):
         password=password.encode('utf-8'), salt=salt)
 
     # Convert the byte type to string, in order to save the file in the csv
-    return str(senha)[2:-1]
+    return str(hashed_password)[2:-1]
 
 
 def integridade_usuario(username: str):
@@ -98,15 +91,6 @@ def integridade_usuario(username: str):
     users = users_table['usuario'].tolist()
 
     return not (username in users)
-
-
-def novoUsuario(username: str, pwd: str):
-    """Função que cria/registra um novo usuário na tabela de usuários"""
-    lst_usuario = [username, pwd]
-
-    with open('usuarios.csv', 'a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(lst_usuario)
 
 
 def generates_pwd_recovery_code():
@@ -151,9 +135,10 @@ def main_menu():
     0 - in case the user wants to exit the program
     1 - In case the user wants to register a new user
     2 - In case the user wants to login
+    3 - In case the user wants to redefine password using a recovery code
     """
     digito_valido = False
-    number_of_options = 3  # 3 options available to choose
+    number_of_options = 4  # 4 options available to choose
 
     while digito_valido == False:
         print('\n----------------------------------------------')
@@ -161,6 +146,7 @@ def main_menu():
         print('Digite 0 para sair do programa')
         print('Digite 1 para cadastrar um novo usuário')
         print('Digite 2 para logar caso já tenha uma conta')
+        print('Digite 3 para redefinir sua senha usando um código recebido')
         print('------------------------------------------------\n')
 
         digito_inserido = input('Digite a opção desejada: \n')
@@ -238,81 +224,41 @@ def recover_pwd_menu():
         print('\n Dígito inválido. Insira uma opção válida. \n')
 
 
-def evaluates_option_recover_pwd_menu(option: int, usr_name: str):
-    """Receives the user name and the code chosen by him/her in the recover_pwd_menu function
-    Returns 0 for exiting system
-    Returns 1 for expired recovering code
-    Returns 2 for successfuly changed password
-    Returns 3 for wrong recovery code
+def evaluate_recovery_code(usr_name: str, typed_code: str):
     """
-    match option:
-        case 0:
-            print('Programa encerrado! Até breve!')
-            return 0
-        case 1:
-            typed_code = input(
-                '\nDigite o código de recuperação recebido em seu e-mail:\n')
+    Receives the user name and a recovery code
+    Returns 0 if the user doesn't have a recovery process registered on log
+    Returns 1 for expired recovering code
+    Returns 2 for wrong recovery code
+    Returns 3 for right recovery code
+    """
+    #Reads the recovery password log
+    recovery_log = read_csv('log_recuperacao_senha.csv')
+    
+    #Get the users with registered recovery logs
+    recovery_log_users_list = recovery_log['usuario'].to_list()
 
-            # Reads the recovery password log
-            recovery_log = read_csv('log_recuperacao_senha.csv')
+    if not(usr_name in recovery_log_users_list):
+        return 0
 
-            # Find the user corresponding data in recovery pwd register
-            user_time_stamp_limit = recovery_log.loc[recovery_log['usuario']
-                                                     == usr_name, 'time_stamp_limite'].values[0]
-            user_time_stamp_limit = datetime.datetime.strptime(
-                user_time_stamp_limit, '%Y-%m-%d %H:%M:%S.%f')
-            user_recovery_code = recovery_log.loc[recovery_log['usuario']
-                                                  == usr_name, 'code'].values[0]
+    # Find the user corresponding data in recovery pwd register
+    user_time_stamp_limit = recovery_log.loc[recovery_log['usuario'] == usr_name, 'time_stamp_limite'].values[0]
+    user_time_stamp_limit = datetime.datetime.strptime(user_time_stamp_limit, '%Y-%m-%d %H:%M:%S.%f')
+    user_recovery_code = recovery_log.loc[recovery_log['usuario'] == usr_name, 'codigo'].values[0]
 
-            # Compares the present time to the time_stamp_limite value
-            if datetime.datetime.now() > user_time_stamp_limit:
-                print(
-                    'Código de recuperação expirado. Solicite um novo código de recuperação.\n')
+    #Converts user_recovery_code to string type
+    user_recovery_code = user_recovery_code.astype(str)
 
-                return 1  # Code 1 stands for expired recovery code
+    if datetime.datetime.now() > user_time_stamp_limit:
+        return 1
 
-            else:  # In case the time to type recover code isn't expired
-
-                # Tests if the recovery code is valid
-                if typed_code == user_recovery_code:
-                    new_password = input('Digite uma nova senha: \n')
-
-                    # Hashes the typed password
-                    new_password = hash_password(password=new_password)
-
-                    # Reads users csv file
-                    csv_file = 'usuarios.csv'
-
-                    # Read the csv file into a list of dictionaries
-                    rows = []
-                    with open(csv_file, 'r') as file:
-                        reader = csv.DictReader(file)
-                        for row in reader:
-                            rows.append(row)
-
-                    # Find the line of the corresponding user and edit it
-                    for row in rows:
-                        if row['usuario'] == usr_name:
-                            row['hash_pwd'] = new_password
-
-                    # Write the updated data back to the csv file
-                    with open(csv_file, 'w', newline='') as file:
-                        fieldnames = rows[0].keys()
-                        writer = csv.DictWriter(file, fieldnames=fieldnames)
-                        writer.writheader()
-                        writer.writerows(rows)
-
-                    # Return success message and reset program
-                    print('\nSenha alterada com sucesso!')
-                    print('Faça seu login com a nova senha para continuar:\n')
-
-                    return 2  # Code 2 stands for password successfuly changed
-
-                else:  # In case the typed recovery code doesn't match the registered recovery code
-                    print('Código de recuperação inválido.\n')
-
-                    return 3  # Code 3 stands for wrong recovery code
-
+    if typed_code != user_recovery_code:
+        return 2
+    
+    #In case the function didn't return any of above codes, it means the typed recovery code is correct and
+    #not expired - returns 3
+    return 3
+                
 
 def evaluates_option_wrong_password_menu(option: int, usr_name: str):
     """Evaluates the option chosen by the user in 'wrong pwd menu'
@@ -366,7 +312,7 @@ def check_password(usr_name: str, typed_pwd: str):
     user = get_usr(usr_name=usr_name)
 
     # Gets the user's stored password
-    stored_pwd = user.pwd_hash_usuario
+    stored_pwd = user.pwd_hash_usuario.encode('utf-8')
 
     # Asks the user to type his password
     byte_typed_pwd = typed_pwd.encode('utf-8')

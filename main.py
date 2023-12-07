@@ -1,5 +1,5 @@
 """Arquivo que executa a lógica do gerenciador de senhas"""
-from procedures import RegisterNewUser, SendRecoveryCode, NewPwdRecoveryLog
+from procedures import RegisterNewUser, SendRecoveryCode, NewPwdRecoveryLog, UpdateUserPwd
 import gerenciador_senhas_funcoes as functions
 
 
@@ -25,12 +25,13 @@ while resultado != 0:
     # Avalia a opção inserida
     match opcao:
         case 0: #code for exiting program
-            print('Programa encerrado! Até breve!')
+            #Sets the loop control variable to 0 in order to exit the main menu loop
+            resultado = 0
         case 1: #code for registering new user
             RegisterNewUser()
             resultado = None #This ensures the main menu loop is going to repeat
         case 2: #Code for login
-            print('Vamos fazer seu login\n')
+            print('\n\nVamos fazer seu login\n')
             usr_name = input('Digite seu nome de usuário:\n')
             typed_pwd = input('Digite sua senha:\n')
             
@@ -60,18 +61,67 @@ while resultado != 0:
 
                             #Creates a recovery log register associated with the user and the generated code
                             NewPwdRecoveryLog(usr_name=usr_name, code=code)
+
+                            print('Um código de recuperação de senha foi enviado para seu e-mail.')
+                            print('Utilize a opção 3 no menu principal para definir uma nova senha usando o código recebido')
                     
-                    #Return None in order to restart the loop of the main menu
-                    return None
+                            #Sets the main menu loop control variable
+                            resultado = None #Any value ther than 0 restarts the main loop
 
                 case 2: #Code for successful login
                     #Write here the main code of the program
                     print('Oi programador! Você precisa definir o fluxo de seu programa a partar deste ponto considerando como devemos interagir com um usuário logado')
                     
                     #Return None in order to restart the main menu loop
-                    return None
+                    resultado = None
+        case 3: #Code for reseting password with recovery code
+            usr_name = input('\n\nDigite seu nome de usuário\n')
+            received_code = input('\nDigite o código de recuperação que você recebeu em seu e-mail\n')
+
+            recovery_process_result = functions.evaluate_recovery_code(usr_name=usr_name, typed_code=received_code)
+
+            match recovery_process_result:
+                case 0: #Code for no existing recovery process
+                    print('Não há solicitação de recuperação de senha para este usuário.')
+                    
+                    #Set the loop control variable to None in order to repeat main menu
+                    opcao = None
+                
+                case 1: #Code for expired recovery code
+                    print('O código de recuperação de senha expirou. Inicie um novo procedimento de reset de senha.')
+                    
+                    #Set the loop control variable to None in order to repeat main menu
+                    opcao = None
+                
+                case 2: #Code for wrong recovery code
+                    print('O código de recuperação de senha informado está incorreto.')
+                    print('Reinicie o procedimento de recuperação de senha novamente')
+
+                    #Set the loop control variable to None in order to repeat main menu
+                    opcao = None
+
+                case 3: #Code for valid recovery code
+                    new_password = input(f'Digite uma nova senha para o usuário {usr_name}:\n')
+                    
+                    #Hashes the password
+                    new_password = functions.hash_password(new_password)
+
+                    #Updates password in the csv file
+                    UpdateUserPwd(usr_name=usr_name, new_pwd=new_password)
+
+                    #Tells the result to the user
+                    print('Senha atualizada com sucesso! Faça login com sua nova senha no menu principal.')
+
+                    #Set the loop control variable to None in order to repeat main menu
+                    opcao = None
 
 
-  #This block of code executes when exiting the loop
-  #Logically, it's equivalent to exiting the program
-  print('Programa encerrado! Até a próxima!')
+
+
+        
+                    
+
+
+#This block of code executes when exiting the loop
+#Logically, it's equivalent to exiting the program
+print('Programa encerrado! Até a próxima!')
