@@ -138,7 +138,14 @@ while resultado not in [0,1]: #0 Stands for exiting the program, and 1 stands fo
 
 #The following flow repeats while the control variable is set to 1, which means a successful logged user
 while resultado == 1:
-    #logged in flow
+    #Shows logged user menu
+    option = functions.logged_user_menu(logged_usr_name=logged_user)
+    
+    print(f'Você escolheu a opção {option}')
+
+    #I'm using this variable to force the exit of the program
+    #It'll vanish in the released version
+    resultado = 0
 
 
 # This block of code executes when exiting all the loops
