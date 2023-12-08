@@ -9,11 +9,55 @@ from gerenciador_senhas_funcoes import integridade_usuario, hash_password
 from keys import conta_email, gmail_app_pwd
 
 
+def criaArquivoSenhas():
+    """This procedure creates a passwords file"""
+    with open('senhas.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["dono_senha", "dominio", "usuario", "senha"])
+
 def criaArquivoUsuarios():
     """Função que inicializa um arquivo de usuários com o nome 'usuarios.csv'"""
     with open('usuarios.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["usuario", "email", "hash_pwd", "cpf"])
+
+
+def criaArquivoLogRecuperacaoUsuarios():
+    """Função que inicializa um arquivo de log de recuperação de senhas de usuário com o nome 'log_recuperacao_senha.csv'"""
+    with open('log_recuperacao_senha.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["usuario", "time_stamp_solicitacao",
+                        "time_stamp_limite", "codigo"])
+
+
+def clearExpiredRecoveryRequests():
+    """
+    Clears all expired recovery requests on the recovery log
+    """
+    
+    #Reads the csv to a pandas dataframe
+    recovery_requests = read_csv('log_recuperacao_senha.csv')
+
+    #Get now time in string format
+    now = datetime.datetime.now()
+    now = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+    #Drops all rows where 'time_stamp_limite' is less than now
+    recovery_requests = recovery_requests.drop(recovery_requests.loc[recovery_requests['time_stamp_limite'] < now].index)
+
+    #Exports the dataframe again
+    recovery_requests.to_csv('log_recuperacao_senha.csv', index=False)
+
+
+def clearRecoveryRequests(usr_name: str):
+    """
+    Clear all recovery requests of the given user from the recovery requests log
+    """
+    recovery_requests = read_csv('log_recuperacao_senha.csv')
+
+    recovery_requests = recovery_requests.loc[recovery_requests['usuario'] != usr_name]
+
+    recovery_requests.to_csv('log_recuperacao_senha.csv', index=False)
 
 
 def RegisterNewUser():
@@ -99,3 +143,7 @@ def UpdateUserPwd(usr_name: str, new_pwd: str):
 
     #Exports the dataframe back to csv
     users_table.to_csv('usuarios.csv', index=False)
+
+
+if __name__ == '__main__':
+    clearExpiredRecoveryRequests()

@@ -15,3 +15,13 @@ class User:
         self.email_usuario = email_usuario
         self.pwd_hash_usuario = pwd_hash_usuario
         self.cpf_usuario = cpf_usuario
+
+
+class RecoveryRequest:
+    """Stands for a recovery request"""
+
+    def __init__(self, usr_name: str, request_time_stamp: str, request_time_limit: str, request_code: str):
+        self.usr_name = usr_name
+        self.request_time_stamp = request_time_stamp
+        self.request_time_limit = request_time_limit
+        self.request_code = request_code
