@@ -1,5 +1,6 @@
 """Arquivo de funções que são utilizadas no programa principal"""
 import os
+import ast
 import csv
 import datetime
 import bcrypt  # Pacote que faz o hash das senhas de usuário salvas
@@ -7,6 +8,13 @@ import ssl  # Pacote que adiciona camada de segurança para comunicações em re
 import smtplib  # Pacote para envio de e-mails
 from email.message import EmailMessage
 # from getpass import getpass #I tried using getpass, but it didn't work - the popup didn't show in the top of the screen
+
+#These are the imports necessary to crypt strings
+from Crypto.Random import get_random_bytes
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+
 import requests
 from pandas import read_csv
 from keys import conta_email, gmail_app_pwd
@@ -40,16 +48,16 @@ def lookup_recovery_user_pwd_log_file():
 
 def get_usr(usr_name: str):
     """Get a User object from the csv file that corresponds to the given user_name given"""
-    users_table = read_csv('usuarios.csv')
+    users_table = read_csv('usuarios.csv', encoding='utf-8')
 
     user_pwd = users_table.loc[users_table['usuario']
                                == usr_name, 'hash_pwd'].values[0]
     user_email = users_table.loc[users_table['usuario']
                                  == usr_name, 'email'].values[0]
-    user_cpf = users_table.loc[users_table['usuario']
-                               == usr_name, 'cpf'].values[0]
+    user_key = users_table.loc[users_table['usuario']
+                               == usr_name, 'key'].values[0]
 
-    return User(nome_usuario=usr_name, email_usuario=user_email, pwd_hash_usuario=user_pwd, cpf_usuario=user_cpf)
+    return User(nome_usuario=usr_name, email_usuario=user_email, pwd_hash_usuario=user_pwd, key=user_key)
 
 
 def hash_password(password: str):
@@ -95,6 +103,43 @@ def generates_pwd_recovery_code():
         code = code + str(number)
 
     return code
+
+
+def encrypts_value(message: str, key: str):
+    """
+    Receives a string and a key. Returns an encrypted AES-32 value with its iv
+    """
+    #Encode the received value as bytes
+    message = message.encode('utf-8')
+
+    #Get the byte version of the string key parameter
+    key = ast.literal_eval(key)
+
+    #Build the cipher
+    cipher = AES.new(key, AES.MODE_CBC)
+
+    #Encrypts the message with the cipher
+    encrypted_message = cipher.encrypt(pad(message, AES.block_size))
+
+    #Gets the string version of the bytes encrypted message and its iv
+    encrypted_message = str(encrypted_message)
+    iv = str(cipher.iv)
+
+    #Returns the encrypted data with its iv
+    return (encrypted_message, iv)
+
+
+def decrypt_value(encrypted_str: str, key: str, iv: str):
+    #Get the bytes version of the literal strings
+    encrypted_str = ast.literal_eval(encrypted_str)
+    key = ast.literal_eval(key)
+    iv = ast.literal_eval(iv)
+    
+    #Builds a cipher object to decrypt the value
+    cipher = AES.new(key, AES.MODE_CBC, iv=iv)
+
+    #Decrypt message
+    return unpad(cipher.decrypt(encrypted_str), AES.block_size).decode('latin')
 
 
 def criaNovoLogin(dono_senha, dominio, usuario, senha):
@@ -260,7 +305,7 @@ def check_password(usr_name: str, typed_pwd: str):
     # Gets the user's stored password
     stored_pwd = user.pwd_hash_usuario.encode('utf-8')
 
-    # Asks the user to type his password
+    #Encode the typed pwd parameter
     byte_typed_pwd = typed_pwd.encode('utf-8')
 
     # Tests if the typed pwd equals the registered pwd
@@ -324,7 +369,10 @@ def logged_user_menu(logged_usr_name: str):
 
 
 if __name__ == '__main__':
-    requests = get_usr_recovery_requests('pedro')
+    user = get_usr('pteixeira')
+    
+    key = user.key
+    iv = str(b'\\3L\x8a\xf2\xef\x9e\xfc\xfa\x0e\x9dyX\x17\xd2\xcb')
+    message = str(b'F\xe7\xc7\x93}\x86?GRP\x176\x0b\xdbw.')
 
-    print(requests)
-    print(type(requests))
+    print(decrypt_value(encrypted_str=message, key=key, iv=iv))

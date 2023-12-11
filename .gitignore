@@ -4,4 +4,7 @@ __pycache__/
 models.py
 keys.py
 log_recuperacao_senha.csv
-testes.py
+encrypt_instructions.py
+test.py
+key.bin
+encrypted.bin

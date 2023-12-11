@@ -1,4 +1,5 @@
 """Arquivo que executa a lógica do gerenciador de senhas"""
+import csv
 from procedures import RegisterNewUser, SendRecoveryCode, NewPwdRecoveryLog, UpdateUserPwd, criaArquivoSenhas, criaArquivoUsuarios, criaArquivoLogRecuperacaoUsuarios, clearRecoveryRequests, clearExpiredRecoveryRequests
 import gerenciador_senhas_funcoes as functions
 
@@ -82,8 +83,8 @@ while resultado not in [0,1]: #0 Stands for exiting the program, and 1 stands fo
                             resultado = None  # Any value ther than 0 restarts the main loop
 
                 case 2:  # Code for successful login
-                    # Defines the logged_user variable
-                    logged_user = usr_name
+                    # Get user's data
+                    user = functions.get_usr(usr_name=usr_name)
 
                     # Sets the result to 1 in order to exit main menu code and to drive the flow to the logged-in user area
                     resultado = 1
@@ -139,9 +140,54 @@ while resultado not in [0,1]: #0 Stands for exiting the program, and 1 stands fo
 #The following flow repeats while the control variable is set to 1, which means a successful logged user
 while resultado == 1:
     #Shows logged user menu
-    option = functions.logged_user_menu(logged_usr_name=logged_user)
+    option = functions.logged_user_menu(logged_usr_name=user.nome_usuario)
     
-    print(f'Você escolheu a opção {option}')
+    match option:
+        case 0: #Option for exiting program
+            #Forces a loop exit - ends the program
+            resultado = 0
+        case 1: #Option to list the saved passwords
+            #I'm implementing this after implementing the 'create new password entry' functionality
+            print('Esta parte do programa irá listar suas senhas salvas')
+            resultado = 0 #Forces exit program
+
+        case 2: #Option to search for saved password
+            #I'm implementing this after 'create new password entry' functionality
+            print('Esta parte do programa irá listar suas senhas salvas')
+            resultado = 0 #Forces exit program
+
+        case 3:
+            print('Vamos salvar uma nova senha')
+            
+            #Asks for Login attributes
+            nome_servico = input('Qual é o nome do serviço para o qual você deseja armazenar a senha?\n')
+            dominio = input('Digite o domínio da senha (endereço do site ou nome do app):\n')
+            descricao = input('Digite uma descrição para este serviço, se for necesário:\n')
+            login = input('Digite o login (nome de usuário)\n')
+            senha = input('Digite a senha\n')
+
+            #Uses a function to encrypt the password value
+            encrypted_pwd = functions.encrypts_value(message=senha, key=user.key)
+
+            #Prepare list to register on csv
+            pwd_data = [user.nome_usuario, nome_servico, dominio, descricao, login, encrypted_pwd[0], encrypted_pwd[1]]
+
+            #Adds data to csv
+            with open('senhas.csv', 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(pwd_data)
+            
+            #Message to the user
+            print('Senha registrada com sucesso!')
+
+            resultado = 1 #Controls the loop - make the options pane show up again
+            
+        case 4:
+            print('Vamos editar uma senha')
+            resultado = 0 #Forces exit program
+        case 5:
+            print('Vamos excluir uma senha salva')
+            resultado = 0 #Forces exit program
 
     #I'm using this variable to force the exit of the program
     #It'll vanish in the released version

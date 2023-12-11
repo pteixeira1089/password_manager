@@ -4,6 +4,15 @@ from pandas import read_csv
 import ssl  # Pacote que adiciona camada de segurança para comunicações em rede
 import smtplib  # Pacote para envio de e-mails
 from email.message import EmailMessage
+
+#These are the imports necessary to crypt strings
+from Crypto.Random import get_random_bytes
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+import hashlib #used to generate a 23-byte hash value of the string
+
+# Program functions
 from gerenciador_senhas_funcoes import integridade_usuario, hash_password
 # Personal variables - used in API's and other configurations
 from keys import conta_email, gmail_app_pwd
@@ -13,13 +22,14 @@ def criaArquivoSenhas():
     """This procedure creates a passwords file"""
     with open('senhas.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["dono_senha", "dominio", "usuario", "senha"])
+        writer.writerow(["dono_senha", "nome_servico", "dominio", "descricao", "login", "senha", "iv"])
+
 
 def criaArquivoUsuarios():
     """Função que inicializa um arquivo de usuários com o nome 'usuarios.csv'"""
     with open('usuarios.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["usuario", "email", "hash_pwd", "cpf"])
+        writer.writerow(["usuario", "email", "hash_pwd", "key"])
 
 
 def criaArquivoLogRecuperacaoUsuarios():
@@ -70,12 +80,26 @@ def RegisterNewUser():
         typed_pwd = hash_password(password=typed_pwd)
 
         email = input('\nDigite um email válido:\n')
-        cpf = input('\nDigite um CPF:\n')
+
+        #Generates a encryption key for the user
+        #We will use a 32 byte version of the hashed user_name to generate a salt for the key
+        encoded_usr_name = nome_usuario.encode('utf-8') #Encode the pwd to bytes
+        salt = hashlib.sha256(encoded_usr_name).digest() #Uses sha-256 method to get a fixed lenght string from the given pwd
+
+        #Truncate to 32 bytes - ensures the value will have 32 bytes long
+        salt = salt[:32]
+
+        #Generates a key
+        usr_key = PBKDF2(password=typed_pwd, salt=salt, dkLen=32)
+
+        #Prepares the key to be registered as a string on the csv file
+        usr_key = str(usr_key)
 
         #Prepares a list to be used as data entry to the users csv file
-        user_list = [nome_usuario, email, typed_pwd, cpf]
+        user_list = [nome_usuario, email, typed_pwd, usr_key]
 
-        with open('usuarios.csv', 'a', newline='') as file:
+        #Register the values on the csv
+        with open('usuarios.csv', 'a', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             writer.writerow(user_list)
 
